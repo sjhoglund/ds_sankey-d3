@@ -7,6 +7,8 @@ import * as ut from './utils.js';
 // change this to 'false' before deploying
 export const LOCAL = false;
 
+// This click function applied to chart interactions and the node that is clicked acts as a filter
+// for the data on the page.
 function click(d, message) {
 	// SET VARIABLES TO FILTER DASHBOARD
 	const FILTER = dscc.InteractionType.FILTER;
@@ -34,6 +36,8 @@ function click(d, message) {
 	dscc.sendInteraction(actionId, FILTER, filterData);
 }
 
+// When a filter is applied, this function updates the data
+// that populates this chart so it can be updated as well.
 function updateData(d, message) {
 	var data = message.tables.DEFAULT;
 	message.tables.DEFAULT = [];
@@ -64,7 +68,10 @@ const getTotal = data => {
 	return sum;
 }
 
-// write viz code here
+// The d3 code for the sankey requires the data in a "To" "From" format (two dimensions).
+// This function parses the data from Datastudio to meet the d3 format - eliminating the
+// need to adjust the data in datastudio or the source to meet this need. Another benefit
+// is that the user can build the chart similar to a native chart in datastudio.
 const parseData = data => {
   
   // REVISED FOR MORE THAN 2 DIMENSIONS
@@ -130,6 +137,9 @@ const parseData = data => {
   return {nodes, links};
 };
 
+// The styleVal function pulls the value from the style options
+// the user selected in Datastudio. This makes it easier to keep
+// track of style options and apply to other functions.
 const styleVal = (message, styleId) => {
   // to account for color styling
   if (typeof message.style[styleId].defaultValue === 'object') {
@@ -142,6 +152,8 @@ const styleVal = (message, styleId) => {
     : message.style[styleId].defaultValue;
 };
 
+// Declaring variables and small format functions for use
+// in the code found in the draw function
 const units = "Guests";
 //const formatNumber = d3.format(",.0f");
 const formatNumber = d3.format(",.2r");
@@ -150,10 +162,14 @@ const formatPrecision = Math.max(0, d3.precisionFixed(0.05) - 2);
 const formatPer = d3.format("." + formatPrecision + "%");
 const formatPercent = function(d) { return formatPer(d); };
 
+// This is the main function that builds the foundation of the chart
+// and the chart components.
 const draw = message => {
 	
+	// Check to see if the filter option is selected.
 	const enableInteractions = message.interactions.onClick.value.type === 'FILTER' ? true : false;
-
+	
+	// If selected, update the data for the chart and page.
   if (enableInteractions) {
     if (message.interactions.onClick.value.data !== undefined) {
 		  const selected = message.interactions.onClick.value.data;
@@ -161,6 +177,9 @@ const draw = message => {
     }
   }
 	
+	// Parse the data to meet the needs for d3 and
+	// get the running total to be used to calculate
+	// percentage.
   const sankeyData = parseData(message.tables.DEFAULT);
   const runTotal = getTotal(message.tables.DEFAULT);
 
@@ -178,6 +197,8 @@ const draw = message => {
   var width = dscc.getWidth();
   var height = dscc.getHeight();
 
+	// The onHover function applies formatting to the item that is being hovered on
+	// and calls the showTooltip function.
   function onHover(elem, d) {
     showTooltip(elem, d);
     if (elem.classList.contains("node")) {
@@ -195,6 +216,7 @@ const draw = message => {
     }
   }
 
+  // Reverses the styling changes from the onHover function
   function leaveHover(elem, d) {
 	hideToolTip(elem, d);
     if (d.id !== undefined) {
@@ -213,6 +235,7 @@ const draw = message => {
   var w = width - 100;
   var h = height - 100;
 
+	// Declare svg, which is used as the base throughout.
   var svg = d3
     .select('body')
     .append('svg')
@@ -235,6 +258,7 @@ const draw = message => {
     .style('opacity', 1)
     .style('position', 'absolute');
   
+  // Append span tags to tooltips to apply additional styling and text further in the script
   tooltip.append('span').attr('id', 'title').style('display', 'block').style('padding-bottom', '5px');
   tooltip.append('span').attr('id', 'metric').style('display', 'block');
 
